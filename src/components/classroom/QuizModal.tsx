@@ -7,12 +7,11 @@ import {
   HelpCircle, 
   Award, 
   RotateCcw, 
-  ArrowRight,
   Sparkles
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import confetti from 'canvas-confetti';
+import { triggerConfetti } from '../../utils/confetti';
 
 interface QuizModalProps {
   quiz: Quiz;
@@ -46,11 +45,7 @@ export const QuizModal: React.FC<QuizModalProps> = ({ quiz, courseId, onClose })
     submitQuizScore(courseId, quiz.id, score);
 
     if (score >= quiz.passingScore) {
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 }
-      });
+      triggerConfetti();
     }
   };
 
