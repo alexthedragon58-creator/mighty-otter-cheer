@@ -1,5 +1,22 @@
 export type UserRole = 'student' | 'instructor' | 'admin';
 
+export interface CodeExercise {
+  id: string;
+  title: string;
+  description: string;
+  initialCode: string;
+  solutionCode: string;
+  language: 'javascript' | 'typescript' | 'python' | 'html';
+  hints: string[];
+}
+
+export interface Flashcard {
+  id: string;
+  front: string;
+  back: string;
+  category: string;
+}
+
 export interface Lesson {
   id: string;
   title: string;
@@ -7,6 +24,7 @@ export interface Lesson {
   videoUrl: string; // video embed/mp4
   description: string;
   resources?: { name: string; type: 'pdf' | 'zip' | 'link'; size?: string; url: string }[];
+  codeExercise?: CodeExercise;
   completed?: boolean;
 }
 
@@ -73,7 +91,9 @@ export interface Course {
   reviews: Review[];
   featured?: boolean;
   bestseller?: boolean;
+  flashcards?: Flashcard[];
   updatedAt: string;
+  status?: 'published' | 'under_review' | 'draft';
 }
 
 export interface UserProgress {

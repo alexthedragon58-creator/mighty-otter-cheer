@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Course, UserProgress, UserRole, LiveSession, ForumPost } from '../types/lms';
+import { Course, UserProgress, UserRole, LiveSession, ForumPost, Review } from '../types/lms';
 import { INITIAL_COURSES, INITIAL_LIVE_SESSIONS, INITIAL_FORUM_POSTS } from '../data/mockLmsData';
 import { showSuccess, showError } from '../utils/toast';
 import { triggerConfetti } from '../utils/confetti';
@@ -16,7 +16,7 @@ interface LmsContextType {
   };
   setRole: (role: UserRole) => void;
   courses: Course[];
-  userProgress: Record<string, UserProgress>; // courseId -> UserProgress
+  userProgress: Record<string, UserProgress>;
   activeCourse: Course | null;
   activeLessonId: string | null;
   selectedCourseForPreview: Course | null;
@@ -36,6 +36,7 @@ interface LmsContextType {
   submitQuizScore: (courseId: string, quizId: string, scorePercentage: number) => void;
   addLessonNote: (courseId: string, lessonId: string, timestamp: string, text: string) => void;
   deleteLessonNote: (courseId: string, noteId: string) => void;
+  addCourseReview: (courseId: string, rating: number, comment: string) => void;
   toggleRegisterLiveSession: (sessionId: string) => void;
   
   // Community Actions
@@ -72,147 +73,6 @@ export const LmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [userProgress, setUserProgress] = useState<Record<string, UserProgress>>(() => {
     const saved = localStorage.getItem('edu_progress');
     if (saved) return JSON.parse(saved);
-    // Pre-enroll in Course 1 for a rich instant experience
-    return {
-      'course-1': {
-        courseId: 'course-1',
-        enrolledDate: '2024-10-15',
-        completedLessonIds: ['les-1-1'],
-        lastLessonId: 'les-1-2',
-        quizScores: {},
-        isCompleted: false,
-        notes: [
-          {
-            id: 'note-1',
-            lessonId: 'les-1-1',
-            timestamp: '04:15',
-            text: 'Server Components cannot access browser APIs like localStorage directly. Keep in mind!',
-            createdAt: '2 days ago'
-          }
-        ]
-      }
-    };
-  });
-
-  const [activeCourse, setActiveCourse] = useState<Course | null>(null);
-  const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
-  const [selectedCourseForPreview, setSelectedCourseForPreview] = useState<Course | null>(null);
-  const [liveSessions, setLiveSessions] = useState<LiveSession[]>(() => {
-    const saved = localStorage.getItem('edu_live_sessions');
-    return saved ? JSON.parse(saved) : INITIAL_LIVE_SESSIONS;
-  });
-  const [forumPosts, setForumPosts] = useState<ForumPost[]>(() => {
-    const saved = localStorage.getItem('edu_forum_posts');
-    return saved ? JSON.parse(saved) : INITIAL_FORUM_POSTS;
-  });
-
-  useEffect(() => {
-    localStorage.setItem('edu_courses', JSON.stringify(courses));
-  }, [courses]);
-
-  useEffect(() => {
-    localStorage.setItem('edu_progress', JSON.stringify(userProgress));
-  }, [userProgress]);
-
-  useEffect(() => {
-    localStorage.setItem('edu_live_sessions', JSON.stringify(liveSessions));
-  }, [liveSessions]);
-
-  useEffect(() => {
-    localStorage.setItem('edu_forum_posts', JSON.stringify(forumPosts));
-  }, [forumPosts]);
-
-  const setRole = (role: UserRole) => {
-    setCurrentUser(prev => ({ ...prev, role }));
-    showSuccess(`Switched to ${role.charAt(0).toUpperCase() + role.slice(1)} view`);
-  };
-
-  const openCoursePreview = (course: Course) => {
-    setSelectedCourseForPreview(course);
-  };
-
-  const closeCoursePreview = () => {
-    setSelectedCourseForPreview(null);
-  };
-
-  const startCourse = (course: Course, lessonId?: string) => {
-    if (!userProgress[course.id]) {
-      enrollCourse(course.id);<dyad-write path="src/context/LmsContext.tsx" description="Complete LmsContext with internal zero-dependency confetti implementation">
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Course, UserProgress, UserRole, LiveSession, ForumPost } from '../types/lms';
-import { INITIAL_COURSES, INITIAL_LIVE_SESSIONS, INITIAL_FORUM_POSTS } from '../data/mockLmsData';
-import { showSuccess, showError } from '../utils/toast';
-import { triggerConfetti } from '../utils/confetti';
-
-interface LmsContextType {
-  currentUser: {
-    name: string;
-    email: string;
-    avatar: string;
-    role: UserRole;
-    streakDays: number;
-    weeklyGoalHours: number;
-    completedHoursThisWeek: number;
-  };
-  setRole: (role: UserRole) => void;
-  courses: Course[];
-  userProgress: Record<string, UserProgress>; // courseId -> UserProgress
-  activeCourse: Course | null;
-  activeLessonId: string | null;
-  selectedCourseForPreview: Course | null;
-  liveSessions: LiveSession[];
-  forumPosts: ForumPost[];
-  
-  // Navigation / Actions
-  openCoursePreview: (course: Course) => void;
-  closeCoursePreview: () => void;
-  startCourse: (course: Course, lessonId?: string) => void;
-  closeClassroom: () => void;
-  setActiveLesson: (lessonId: string) => void;
-  
-  // Student Actions
-  enrollCourse: (courseId: string) => void;
-  toggleLessonComplete: (courseId: string, lessonId: string) => void;
-  submitQuizScore: (courseId: string, quizId: string, scorePercentage: number) => void;
-  addLessonNote: (courseId: string, lessonId: string, timestamp: string, text: string) => void;
-  deleteLessonNote: (courseId: string, noteId: string) => void;
-  toggleRegisterLiveSession: (sessionId: string) => void;
-  
-  // Community Actions
-  createForumPost: (newPost: { courseTitle: string; title: string; content: string; tags: string[] }) => void;
-  upvotePost: (postId: string) => void;
-  addPostReply: (postId: string, text: string) => void;
-  
-  // Instructor Actions
-  addNewCourse: (newCourseData: Partial<Course>) => void;
-  
-  // Helper getters
-  getCourseProgressPercentage: (courseId: string) => number;
-  isEnrolled: (courseId: string) => boolean;
-}
-
-const LmsContext = createContext<LmsContextType | undefined>(undefined);
-
-export const LmsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState({
-    name: 'Alex Sterling',
-    email: 'alex.sterling@devmail.io',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-    role: 'student' as UserRole,
-    streakDays: 6,
-    weeklyGoalHours: 10,
-    completedHoursThisWeek: 7.5,
-  });
-
-  const [courses, setCourses] = useState<Course[]>(() => {
-    const saved = localStorage.getItem('edu_courses');
-    return saved ? JSON.parse(saved) : INITIAL_COURSES;
-  });
-
-  const [userProgress, setUserProgress] = useState<Record<string, UserProgress>>(() => {
-    const saved = localStorage.getItem('edu_progress');
-    if (saved) return JSON.parse(saved);
-    // Pre-enroll in Course 1 for a rich instant experience
     return {
       'course-1': {
         courseId: 'course-1',
@@ -451,6 +311,34 @@ export const LmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showSuccess('Note removed');
   };
 
+  const addCourseReview = (courseId: string, rating: number, comment: string) => {
+    const newRev: Review = {
+      id: `rev-${Date.now()}`,
+      userName: currentUser.name,
+      userAvatar: currentUser.avatar,
+      rating,
+      date: 'Just now',
+      comment
+    };
+
+    setCourses(prev =>
+      prev.map(c => {
+        if (c.id === courseId) {
+          const reviews = [newRev, ...c.reviews];
+          const newAvg = reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length;
+          return {
+            ...c,
+            reviews,
+            rating: Number(newAvg.toFixed(2)),
+            ratingCount: c.ratingCount + 1
+          };
+        }
+        return c;
+      })
+    );
+    showSuccess('Review submitted! Thank you for your feedback.');
+  };
+
   const toggleRegisterLiveSession = (sessionId: string) => {
     setLiveSessions(prev =>
       prev.map(s => {
@@ -577,7 +465,8 @@ export const LmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       learningOutcomes: newCourseData.learningOutcomes || ['Build real-world production projects', 'Best practices and design patterns'],
       requirements: ['Basic computer literacy', 'A desire to learn'],
       reviews: [],
-      updatedAt: 'Just now'
+      updatedAt: 'Just now',
+      status: 'published'
     };
 
     setCourses([newCourse, ...courses]);
@@ -606,6 +495,7 @@ export const LmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         submitQuizScore,
         addLessonNote,
         deleteLessonNote,
+        addCourseReview,
         toggleRegisterLiveSession,
         createForumPost,
         upvotePost,

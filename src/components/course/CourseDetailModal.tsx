@@ -10,15 +10,15 @@ import {
   Award, 
   PlayCircle, 
   Users, 
-  Calendar, 
   ShieldCheck, 
-  FileText,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  MessageSquarePlus
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { Textarea } from '../ui/textarea';
 
 interface CourseDetailModalProps {
   course: Course;
@@ -26,13 +26,26 @@ interface CourseDetailModalProps {
 }
 
 export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({ course, onClose }) => {
-  const { startCourse, isEnrolled, getCourseProgressPercentage } = useLms();
+  const { startCourse, isEnrolled, getCourseProgressPercentage, addCourseReview } = useLms();
   const enrolled = isEnrolled(course.id);
   const progress = getCourseProgressPercentage(course.id);
   const [expandedChapter, setExpandedChapter] = useState<string | null>(course.chapters[0]?.id || null);
 
+  // Review Form
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState('');
+
   const toggleChapter = (id: string) => {
     setExpandedChapter(prev => prev === id ? null : id);
+  };
+
+  const handleReviewSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!comment.trim()) return;
+    addCourseReview(course.id, rating, comment);
+    setComment('');
+    setShowReviewForm(false);
   };
 
   return (
@@ -244,7 +257,60 @@ export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({ course, on
             </TabsContent>
 
             {/* Reviews Tab */}
-            <TabsContent value="reviews" className="space-y-3 pt-4">
+            <TabsContent value="reviews" className="space-y-4 pt-4">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-slate-900">Student Testimonials</h4>
+                {enrolled && !showReviewForm && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowReviewForm(true)}
+                    className="text-xs rounded-xl gap-1 border-indigo-200 text-indigo-700"
+                  >
+                    <MessageSquarePlus className="h-3.5 w-3.5" />
+                    Write a Review
+                  </Button>
+                )}
+              </div>
+
+              {/* Review Write Form */}
+              {showReviewForm && (
+                <form onSubmit={handleReviewSubmit} className="p-4 rounded-xl bg-indigo-50/60 border border-indigo-200 space-y-3 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-800">Your Rating</span>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map(star => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setRating(star)}
+                          className="p-0.5 focus:outline-none"
+                        >
+                          <Star className={`h-4 w-4 ${star <= rating ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Textarea
+                    placeholder="Share what you liked about the curriculum and teaching style..."
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    className="bg-white text-xs rounded-xl"
+                    required
+                  />
+
+                  <div className="flex justify-end gap-2">
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setShowReviewForm(false)} className="rounded-xl text-xs">
+                      Cancel
+                    </Button>
+                    <Button type="submit" size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold">
+                      Submit Review
+                    </Button>
+                  </div>
+                </form>
+              )}
+
               {course.reviews.length === 0 ? (
                 <p className="text-xs text-slate-500 italic p-4 text-center">No reviews yet. Be the first to leave one after enrolling!</p>
               ) : (
@@ -270,10 +336,10 @@ export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({ course, on
           </Tabs>
         </div>
 
-        {/* Bottom footer button for quick enroll */}
+        {/* Bottom quick enroll footer */}
         <div className="px-6 py-3 border-t border-slate-100 bg-white flex items-center justify-between">
           <div className="text-xs text-slate-500">
-            Includes full certificate of completion & downloadable resources
+            Includes verified certificate of completion & full curriculum access
           </div>
           <Button
             onClick={() => startCourse(course)}
