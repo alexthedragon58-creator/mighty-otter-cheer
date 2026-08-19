@@ -10,6 +10,8 @@ import { LiveWebinarsTab } from '../components/live/LiveWebinarsTab';
 import { CommunityForumTab } from '../components/community/CommunityForumTab';
 import { AdminDashboard } from '../components/admin/AdminDashboard';
 import { AboutUsTab } from '../components/about/AboutUsTab';
+import { RoadmapsTab } from '../components/roadmap/RoadmapsTab';
+import { AiTutorDrawer } from '../components/ai/AiTutorDrawer';
 import { 
   BookOpen, 
   LayoutDashboard, 
@@ -19,7 +21,8 @@ import {
   SlidersHorizontal,
   Search,
   ShieldCheck,
-  Info
+  Info,
+  Compass
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -46,11 +49,12 @@ const MainLmsApp: React.FC = () => {
     courses, 
     selectedCourseForPreview, 
     closeCoursePreview, 
+    openCoursePreview,
     activeCourse,
     currentUser
   } = useLms();
 
-  const [currentTab, setCurrentTab] = useState<'explore' | 'dashboard' | 'studio' | 'webinars' | 'community' | 'admin' | 'about'>('explore');
+  const [currentTab, setCurrentTab] = useState<'explore' | 'dashboard' | 'roadmaps' | 'studio' | 'webinars' | 'community' | 'admin' | 'about'>('explore');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
   const [selectedLevel, setSelectedLevel] = useState('All');
@@ -74,6 +78,13 @@ const MainLmsApp: React.FC = () => {
     });
   }, [courses, searchQuery, selectedCategory, selectedLevel, sortBy]);
 
+  const handleSelectCourseFromRoadmap = (courseId: string) => {
+    const found = courses.find(c => c.id === courseId);
+    if (found) {
+      openCoursePreview(found);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50/60 flex flex-col font-sans text-slate-800 antialiased selection:bg-indigo-500 selection:text-white">
       {/* Top Navigation */}
@@ -88,7 +99,7 @@ const MainLmsApp: React.FC = () => {
       {/* Main Tab Navigation Bar */}
       <div className="bg-white border-b border-slate-200 sticky top-16 z-30 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-1 sm:space-x-4 overflow-x-auto py-2">
+          <div className="flex space-x-1 sm:space-x-3 overflow-x-auto py-2">
             <button
               onClick={() => setCurrentTab('explore')}
               className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all shrink-0 ${
@@ -99,6 +110,19 @@ const MainLmsApp: React.FC = () => {
             >
               <BookOpen className="h-4 w-4" />
               <span>Course Catalog</span>
+            </button>
+
+            <button
+              onClick={() => setCurrentTab('roadmaps')}
+              className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all shrink-0 ${
+                currentTab === 'roadmaps'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+              }`}
+            >
+              <Compass className="h-4 w-4" />
+              <span>Career Roadmaps</span>
+              <Badge className="bg-amber-100 text-amber-800 text-[10px] font-bold border-none px-1.5 py-0">New</Badge>
             </button>
 
             <button
@@ -210,17 +234,10 @@ const MainLmsApp: React.FC = () => {
                   </Button>
                   <Button
                     variant="outline"
-                    onClick={() => setSelectedCategory('Web Development')}
+                    onClick={() => setCurrentTab('roadmaps')}
                     className="bg-white/10 hover:bg-white/20 text-white border-white/20 rounded-xl text-xs font-bold px-4 h-10 backdrop-blur-sm"
                   >
-                    Full-Stack Next.js
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={() => setCurrentTab('about')}
-                    className="text-indigo-200 hover:text-white text-xs font-semibold px-3"
-                  >
-                    Learn Our Mission →
+                    View Career Roadmaps
                   </Button>
                 </div>
               </div>
@@ -317,22 +334,27 @@ const MainLmsApp: React.FC = () => {
           </div>
         )}
 
-        {/* TAB 2: Student Dashboard */}
+        {/* TAB: Roadmaps */}
+        {currentTab === 'roadmaps' && (
+          <RoadmapsTab onSelectCourse={handleSelectCourseFromRoadmap} />
+        )}
+
+        {/* TAB: Student Dashboard */}
         {currentTab === 'dashboard' && (
           <StudentDashboard onExploreMore={() => setCurrentTab('explore')} />
         )}
 
-        {/* TAB 3: Live Webinars */}
+        {/* TAB: Live Webinars */}
         {currentTab === 'webinars' && (
           <LiveWebinarsTab />
         )}
 
-        {/* TAB 4: Community Forums */}
+        {/* TAB: Community Forums */}
         {currentTab === 'community' && (
           <CommunityForumTab />
         )}
 
-        {/* TAB 5: About Us & Mission */}
+        {/* TAB: About Us & Mission */}
         {currentTab === 'about' && (
           <AboutUsTab
             onExploreCourses={() => setCurrentTab('explore')}
@@ -340,12 +362,12 @@ const MainLmsApp: React.FC = () => {
           />
         )}
 
-        {/* TAB 6: Instructor Studio */}
+        {/* TAB: Instructor Studio */}
         {currentTab === 'studio' && (
           <InstructorStudio />
         )}
 
-        {/* TAB 7: Admin Dashboard */}
+        {/* TAB: Admin Dashboard */}
         {currentTab === 'admin' && (
           <AdminDashboard />
         )}
@@ -362,17 +384,22 @@ const MainLmsApp: React.FC = () => {
       {/* Active Classroom Player (Fullscreen Overlay) */}
       {activeCourse && <CoursePlayer />}
 
+      {/* Floating AI Tutor Copilot */}
+      <AiTutorDrawer />
+
       {/* Footer */}
       <footer className="border-t border-slate-200 bg-white py-8 text-center text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p>© {new Date().getFullYear()} LearnSphere LMS. Empowering modern software engineers worldwide.</p>
           <div className="flex gap-4">
+            <span onClick={() => setCurrentTab('roadmaps')} className="hover:text-indigo-600 cursor-pointer font-medium">
+              Career Roadmaps
+            </span>
             <span onClick={() => setCurrentTab('about')} className="hover:text-indigo-600 cursor-pointer font-medium">
               About & Mission
             </span>
             <span className="hover:text-slate-800 cursor-pointer">Privacy Policy</span>
             <span className="hover:text-slate-800 cursor-pointer">Terms of Service</span>
-            <span className="hover:text-slate-800 cursor-pointer">API & Docs</span>
           </div>
         </div>
       </footer>
