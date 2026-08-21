@@ -22,31 +22,6 @@ const PRESET_ACCOUNTS: UserAccount[] = [
     name: 'Dr. Sarah Vance',
     email: 'instructor@learnsphere.io',
     password: 'password123',
-    avatar<dyad-write path="src/context/LmsContext.tsx" description="Complete authentication, multi-user accounts registry, registration, role separation, and persistence">
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Course, UserProgress, UserRole, LiveSession, ForumPost, Review, UserAccount } from '../types/lms';
-import { INITIAL_COURSES, INITIAL_LIVE_SESSIONS, INITIAL_FORUM_POSTS } from '../data/mockLmsData';
-import { showSuccess, showError } from '../utils/toast';
-import { triggerConfetti } from '../utils/confetti';
-
-const PRESET_ACCOUNTS: UserAccount[] = [
-  {
-    id: 'user-student-1',
-    name: 'Alex Sterling',
-    email: 'student@learnsphere.io',
-    password: 'password123',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-    role: 'student',
-    streakDays: 6,
-    weeklyGoalHours: 10,
-    completedHoursThisWeek: 7.5,
-    joinedDate: 'October 2024'
-  },
-  {
-    id: 'user-instructor-1',
-    name: 'Dr. Sarah Vance',
-    email: 'instructor@learnsphere.io',
-    password: 'password123',
     avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=200&q=80',
     role: 'instructor',
     specialty: 'Next.js 15 & AI Systems',
