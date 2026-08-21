@@ -1,17 +1,5 @@
 export type UserRole = 'student' | 'instructor' | 'admin';
 
-export interface AuthUser {
-  id: string;
-  name: string;
-  email: string;
-  avatar: string;
-  role: UserRole;
-  provider?: 'email' | 'google';
-  streakDays: number;
-  weeklyGoalHours: number;
-  completedHoursThisWeek: number;
-}
-
 export interface CodeExercise {
   id: string;
   title: string;
@@ -32,8 +20,8 @@ export interface Flashcard {
 export interface Lesson {
   id: string;
   title: string;
-  duration: string;
-  videoUrl: string;
+  duration: string; // e.g. "12:45"
+  videoUrl: string; // video embed/mp4
   description: string;
   resources?: { name: string; type: 'pdf' | 'zip' | 'link'; size?: string; url: string }[];
   codeExercise?: CodeExercise;
@@ -52,7 +40,7 @@ export interface Quiz {
   id: string;
   title: string;
   timeLimitMinutes: number;
-  passingScore: number;
+  passingScore: number; // percentage
   questions: QuizQuestion[];
 }
 
@@ -113,7 +101,7 @@ export interface UserProgress {
   enrolledDate: string;
   completedLessonIds: string[];
   lastLessonId?: string;
-  quizScores: Record<string, number>;
+  quizScores: Record<string, number>; // quizId -> score percentage
   isCompleted: boolean;
   completedDate?: string;
   certificateId?: string;
