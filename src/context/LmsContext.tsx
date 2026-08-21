@@ -1,20 +1,85 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Course, UserProgress, UserRole, LiveSession, ForumPost, Review } from '../types/lms';
+import { Course, UserProgress, UserRole, LiveSession, ForumPost, Review, UserAccount } from '../types/lms';
 import { INITIAL_COURSES, INITIAL_LIVE_SESSIONS, INITIAL_FORUM_POSTS } from '../data/mockLmsData';
 import { showSuccess, showError } from '../utils/toast';
 import { triggerConfetti } from '../utils/confetti';
 
+const PRESET_ACCOUNTS: UserAccount[] = [
+  {
+    id: 'user-student-1',
+    name: 'Alex Sterling',
+    email: 'student@learnsphere.io',
+    password: 'password123',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+    role: 'student',
+    streakDays: 6,
+    weeklyGoalHours: 10,
+    completedHoursThisWeek: 7.5,
+    joinedDate: 'October 2024'
+  },
+  {
+    id: 'user-instructor-1',
+    name: 'Dr. Sarah Vance',
+    email: 'instructor@learnsphere.io',
+    password: 'password123',
+    avatar<dyad-write path="src/context/LmsContext.tsx" description="Complete authentication, multi-user accounts registry, registration, role separation, and persistence">
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { Course, UserProgress, UserRole, LiveSession, ForumPost, Review, UserAccount } from '../types/lms';
+import { INITIAL_COURSES, INITIAL_LIVE_SESSIONS, INITIAL_FORUM_POSTS } from '../data/mockLmsData';
+import { showSuccess, showError } from '../utils/toast';
+import { triggerConfetti } from '../utils/confetti';
+
+const PRESET_ACCOUNTS: UserAccount[] = [
+  {
+    id: 'user-student-1',
+    name: 'Alex Sterling',
+    email: 'student@learnsphere.io',
+    password: 'password123',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+    role: 'student',
+    streakDays: 6,
+    weeklyGoalHours: 10,
+    completedHoursThisWeek: 7.5,
+    joinedDate: 'October 2024'
+  },
+  {
+    id: 'user-instructor-1',
+    name: 'Dr. Sarah Vance',
+    email: 'instructor@learnsphere.io',
+    password: 'password123',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=200&q=80',
+    role: 'instructor',
+    specialty: 'Next.js 15 & AI Systems',
+    streakDays: 14,
+    weeklyGoalHours: 15,
+    completedHoursThisWeek: 12.0,
+    joinedDate: 'January 2024'
+  },
+  {
+    id: 'user-admin-1',
+    name: 'Chief Admin Helena',
+    email: 'admin@learnsphere.io',
+    password: 'password123',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
+    role: 'admin',
+    streakDays: 30,
+    weeklyGoalHours: 20,
+    completedHoursThisWeek: 18.5,
+    joinedDate: 'November 2023'
+  }
+];
+
 interface LmsContextType {
-  currentUser: {
-    name: string;
-    email: string;
-    avatar: string;
-    role: UserRole;
-    streakDays: number;
-    weeklyGoalHours: number;
-    completedHoursThisWeek: number;
-  };
+  currentUser: UserAccount | null;
+  accounts: UserAccount[];
+  
+  // Auth actions
+  login: (email: string, password: string) => boolean;
+  register: (data: { name: string; email: string; password: string; role: UserRole; specialty?: string }) => boolean;
+  demoLogin: (role: UserRole) => void;
+  logout: () => void;
   setRole: (role: UserRole) => void;
+
   courses: Course[];
   userProgress: Record<string, UserProgress>;
   activeCourse: Course | null;
@@ -55,14 +120,15 @@ interface LmsContextType {
 const LmsContext = createContext<LmsContextType | undefined>(undefined);
 
 export const LmsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState({
-    name: 'Alex Sterling',
-    email: 'alex.sterling@devmail.io',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-    role: 'student' as UserRole,
-    streakDays: 6,
-    weeklyGoalHours: 10,
-    completedHoursThisWeek: 7.5,
+  const [accounts, setAccounts] = useState<UserAccount[]>(() => {
+    const saved = localStorage.getItem('edu_accounts');
+    return saved ? JSON.parse(saved) : PRESET_ACCOUNTS;
+  });
+
+  const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => {
+    const saved = localStorage.getItem('edu_current_user');
+    if (saved) return JSON.parse(saved);
+    return PRESET_ACCOUNTS[0]; // default to student demo
   });
 
   const [courses, setCourses] = useState<Course[]>(() => {
@@ -107,6 +173,18 @@ export const LmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   useEffect(() => {
+    localStorage.setItem('edu_accounts', JSON.stringify(accounts));
+  }, [accounts]);
+
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('edu_current_user', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('edu_current_user');
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
     localStorage.setItem('edu_courses', JSON.stringify(courses));
   }, [courses]);
 
@@ -122,8 +200,76 @@ export const LmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem('edu_forum_posts', JSON.stringify(forumPosts));
   }, [forumPosts]);
 
+  // Auth Methods
+  const login = (email: string, password: string): boolean => {
+    const found = accounts.find(a => a.email.toLowerCase() === email.trim().toLowerCase());
+    if (!found) {
+      showError('Account not found with this email. Please check your credentials or register.');
+      return false;
+    }
+    if (found.password && found.password !== password) {
+      showError('Invalid password. Please try again.');
+      return false;
+    }
+    setCurrentUser(found);
+    showSuccess(`Welcome back, ${found.name}! Signed in as ${found.role.toUpperCase()}.`);
+    return true;
+  };
+
+  const register = (data: { name: string; email: string; password: string; role: UserRole; specialty?: string }): boolean => {
+    const existing = accounts.find(a => a.email.toLowerCase() === data.email.trim().toLowerCase());
+    if (existing) {
+      showError('An account with this email address already exists. Please sign in.');
+      return false;
+    }
+
+    const defaultAvatars: Record<UserRole, string> = {
+      student: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+      instructor: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=200&q=80',
+      admin: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80'
+    };
+
+    const newAccount: UserAccount = {
+      id: `user-${Date.now()}`,
+      name: data.name.trim(),
+      email: data.email.trim().toLowerCase(),
+      password: data.password,
+      role: data.role,
+      specialty: data.specialty,
+      avatar: defaultAvatars[data.role],
+      streakDays: 1,
+      weeklyGoalHours: data.role === 'instructor' ? 15 : 10,
+      completedHoursThisWeek: 0,
+      joinedDate: 'Just now'
+    };
+
+    const updated = [newAccount, ...accounts];
+    setAccounts(updated);
+    setCurrentUser(newAccount);
+    showSuccess(`Account created! Welcome to LearnSphere as an ${data.role.toUpperCase()}.`);
+    return true;
+  };
+
+  const demoLogin = (role: UserRole) => {
+    const target = accounts.find(a => a.role === role) || PRESET_ACCOUNTS.find(a => a.role === role);
+    if (target) {
+      setCurrentUser(target);
+      showSuccess(`Signed in to Demo ${role.toUpperCase()} account (${target.name})`);
+    }
+  };
+
+  const logout = () => {
+    setCurrentUser(null);
+    closeClassroom();
+    closeCoursePreview();
+    showSuccess('You have been signed out successfully');
+  };
+
   const setRole = (role: UserRole) => {
-    setCurrentUser(prev => ({ ...prev, role }));
+    if (!currentUser) return;
+    const updatedUser = { ...currentUser, role };
+    setCurrentUser(updatedUser);
+    setAccounts(prev => prev.map(a => a.id === currentUser.id ? updatedUser : a));
     showSuccess(`Switched to ${role.charAt(0).toUpperCase() + role.slice(1)} view`);
   };
 
@@ -136,6 +282,10 @@ export const LmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const startCourse = (course: Course, lessonId?: string) => {
+    if (!currentUser) {
+      showError('Please sign in or register to open the interactive classroom.');
+      return;
+    }
     if (!userProgress[course.id]) {
       enrollCourse(course.id);
     }
@@ -193,6 +343,10 @@ export const LmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const enrollCourse = (courseId: string) => {
+    if (!currentUser) {
+      showError('Please sign in to enroll in this course');
+      return;
+    }
     if (userProgress[courseId]) return;
     const course = courses.find(c => c.id === courseId);
     if (!course) return;
@@ -312,6 +466,11 @@ export const LmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const addCourseReview = (courseId: string, rating: number, comment: string) => {
+    if (!currentUser) {
+      showError('Please sign in to post a review');
+      return;
+    }
+
     const newRev: Review = {
       id: `rev-${Date.now()}`,
       userName: currentUser.name,
@@ -340,6 +499,11 @@ export const LmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const toggleRegisterLiveSession = (sessionId: string) => {
+    if (!currentUser) {
+      showError('Please sign in to register for live workshops');
+      return;
+    }
+
     setLiveSessions(prev =>
       prev.map(s => {
         if (s.id === sessionId) {
@@ -357,6 +521,11 @@ export const LmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const createForumPost = (newPost: { courseTitle: string; title: string; content: string; tags: string[] }) => {
+    if (!currentUser) {
+      showError('Please sign in to ask or discuss questions');
+      return;
+    }
+
     const post: ForumPost = {
       id: `post-${Date.now()}`,
       courseTitle: newPost.courseTitle,
@@ -379,6 +548,11 @@ export const LmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const upvotePost = (postId: string) => {
+    if (!currentUser) {
+      showError('Please sign in to upvote threads');
+      return;
+    }
+
     setForumPosts(prev =>
       prev.map(p => {
         if (p.id === postId) {
@@ -395,6 +569,11 @@ export const LmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const addPostReply = (postId: string, text: string) => {
+    if (!currentUser) {
+      showError('Please sign in to reply');
+      return;
+    }
+
     setForumPosts(prev =>
       prev.map(p => {
         if (p.id === postId) {
@@ -422,6 +601,11 @@ export const LmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const addNewCourse = (newCourseData: Partial<Course>) => {
+    if (!currentUser) {
+      showError('Please sign in as an instructor to publish courses');
+      return;
+    }
+
     const newCourse: Course = {
       id: `course-${Date.now()}`,
       title: newCourseData.title || 'Untitled Masterclass',
@@ -432,10 +616,10 @@ export const LmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       level: newCourseData.level || 'Intermediate',
       thumbnail: newCourseData.thumbnail || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=1000&q=80',
       instructor: {
-        id: 'inst-cur',
+        id: currentUser.id,
         name: currentUser.name,
         avatar: currentUser.avatar,
-        title: 'Lead Instructor & Mentor',
+        title: currentUser.specialty ? `Lead Instructor • ${currentUser.specialty}` : 'Senior Lead Instructor',
         bio: 'Industry practitioner sharing practical architecture and development techniques.',
         rating: 5.0,
         studentsCount: 1
@@ -477,6 +661,11 @@ export const LmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     <LmsContext.Provider
       value={{
         currentUser,
+        accounts,
+        login,
+        register,
+        demoLogin,
+        logout,
         setRole,
         courses,
         userProgress,

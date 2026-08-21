@@ -1,5 +1,19 @@
 export type UserRole = 'student' | 'instructor' | 'admin';
 
+export interface UserAccount {
+  id: string;
+  name: string;
+  email: string;
+  avatar: string;
+  role: UserRole;
+  password?: string;
+  specialty?: string;
+  streakDays: number;
+  weeklyGoalHours: number;
+  completedHoursThisWeek: number;
+  joinedDate: string;
+}
+
 export interface CodeExercise {
   id: string;
   title: string;

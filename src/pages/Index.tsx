@@ -12,6 +12,7 @@ import { AdminDashboard } from '../components/admin/AdminDashboard';
 import { AboutUsTab } from '../components/about/AboutUsTab';
 import { RoadmapsTab } from '../components/roadmap/RoadmapsTab';
 import { AiTutorDrawer } from '../components/ai/AiTutorDrawer';
+import { AuthModal } from '../components/auth/AuthModal';
 import { 
   BookOpen, 
   LayoutDashboard, 
@@ -22,7 +23,9 @@ import {
   Search,
   ShieldCheck,
   Info,
-  Compass
+  Compass,
+  Lock,
+  UserCheck
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -51,7 +54,8 @@ const MainLmsApp: React.FC = () => {
     closeCoursePreview, 
     openCoursePreview,
     activeCourse,
-    currentUser
+    currentUser,
+    setRole
   } = useLms();
 
   const [currentTab, setCurrentTab] = useState<'explore' | 'dashboard' | 'roadmaps' | 'studio' | 'webinars' | 'community' | 'admin' | 'about'>('explore');
@@ -59,6 +63,7 @@ const MainLmsApp: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
   const [selectedLevel, setSelectedLevel] = useState('All');
   const [sortBy, setSortBy] = useState<'popular' | 'rating' | 'newest'>('popular');
+  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   // Filter & Search Logic
   const filteredCourses = useMemo(() => {
@@ -174,7 +179,7 @@ const MainLmsApp: React.FC = () => {
               <span>About & Mission</span>
             </button>
 
-            {currentUser.role === 'instructor' && (
+            {currentUser?.role === 'instructor' && (
               <button
                 onClick={() => setCurrentTab('studio')}
                 className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all shrink-0 ${
@@ -188,7 +193,7 @@ const MainLmsApp: React.FC = () => {
               </button>
             )}
 
-            {currentUser.role === 'admin' && (
+            {currentUser?.role === 'admin' && (
               <button
                 onClick={() => setCurrentTab('admin')}
                 className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all shrink-0 ${
@@ -341,7 +346,25 @@ const MainLmsApp: React.FC = () => {
 
         {/* TAB: Student Dashboard */}
         {currentTab === 'dashboard' && (
-          <StudentDashboard onExploreMore={() => setCurrentTab('explore')} />
+          currentUser ? (
+            <StudentDashboard onExploreMore={() => setCurrentTab('explore')} />
+          ) : (
+            <div className="p-12 text-center bg-white rounded-3xl border border-slate-200 space-y-4 max-w-md mx-auto my-8">
+              <div className="h-12 w-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto">
+                <Lock className="h-6 w-6" />
+              </div>
+              <h3 className="text-lg font-extrabold text-slate-900">Sign In to View Your Desk</h3>
+              <p className="text-xs text-slate-500">
+                Track your active courses, flashcard mastery, certificates, and weekly study streaks.
+              </p>
+              <Button
+                onClick={() => setAuthModalOpen(true)}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold px-6"
+              >
+                Sign In / Register
+              </Button>
+            </div>
+          )
         )}
 
         {/* TAB: Live Webinars */}
@@ -358,18 +381,72 @@ const MainLmsApp: React.FC = () => {
         {currentTab === 'about' && (
           <AboutUsTab
             onExploreCourses={() => setCurrentTab('explore')}
-            onOpenStudio={() => setCurrentTab('studio')}
+            onOpenStudio={() => {
+              if (currentUser?.role === 'instructor') {
+                setCurrentTab('studio');
+              } else {
+                setRole('instructor');
+                setCurrentTab('studio');
+              }
+            }}
           />
         )}
 
-        {/* TAB: Instructor Studio */}
+        {/* TAB: Instructor Studio (Protected) */}
         {currentTab === 'studio' && (
-          <InstructorStudio />
+          currentUser?.role === 'instructor' ? (
+            <InstructorStudio />
+          ) : (
+            <div className="p-12 text-center bg-white rounded-3xl border border-slate-200 space-y-4 max-w-md mx-auto my-8">
+              <div className="h-12 w-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center mx-auto">
+                <Lock className="h-6 w-6" />
+              </div>
+              <h3 className="text-lg font-extrabold text-slate-900">Instructor Access Required</h3>
+              <p className="text-xs text-slate-500">
+                Switch to the Instructor persona or register an Instructor account to manage courses and analytics.
+              </p>
+              <div className="flex justify-center gap-2">
+                <Button
+                  onClick={() => setRole('instructor')}
+                  className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold"
+                >
+                  Switch to Instructor
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setAuthModalOpen(true)}
+                  className="rounded-xl text-xs"
+                >
+                  Sign In
+                </Button>
+              </div>
+            </div>
+          )
         )}
 
-        {/* TAB: Admin Dashboard */}
+        {/* TAB: Admin Dashboard (Protected) */}
         {currentTab === 'admin' && (
-          <AdminDashboard />
+          currentUser?.role === 'admin' ? (
+            <AdminDashboard />
+          ) : (
+            <div className="p-12 text-center bg-white rounded-3xl border border-slate-200 space-y-4 max-w-md mx-auto my-8">
+              <div className="h-12 w-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
+                <ShieldCheck className="h-6 w-6" />
+              </div>
+              <h3 className="text-lg font-extrabold text-slate-900">Platform Admin Authorization</h3>
+              <p className="text-xs text-slate-500">
+                Root administrator credentials are required to view server telemetry, user databases, and transaction settlements.
+              </p>
+              <div className="flex justify-center gap-2">
+                <Button
+                  onClick={() => setRole('admin')}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold"
+                >
+                  Switch to Admin Persona
+                </Button>
+              </div>
+            </div>
+          )
         )}
       </main>
 
@@ -386,6 +463,12 @@ const MainLmsApp: React.FC = () => {
 
       {/* Floating AI Tutor Copilot */}
       <AiTutorDrawer />
+
+      {/* Authentication Modal */}
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+      />
 
       {/* Footer */}
       <footer className="border-t border-slate-200 bg-white py-8 text-center text-xs text-slate-500">
